@@ -26,18 +26,16 @@ def save(name):
     plt.close()
 
 
-# ------------------------------------------------------------------
 # 1. LOAD + FIRST LOOK
-# ------------------------------------------------------------------
+
 df = pd.read_excel(FILE)
 print("Shape:", df.shape)                 # rows, columns
 print(df.head())
 print(df.info())                          # dtypes + non-null counts
 print(df.describe().T)                    # numeric summary
 
-# ------------------------------------------------------------------
 # 2. DATA QUALITY CHECKS
-# ------------------------------------------------------------------
+
 # 2a. Missing values
 missing = df.isnull().sum()
 missing_pct = (missing / len(df) * 100).round(2)
@@ -59,9 +57,7 @@ print("\nEmployment_Status raw values:\n", df["Employment_Status"].value_counts(
 print("\nCredit_Utilization > 1 :", (df["Credit_Utilization"] > 1).sum())
 print("Credit_Score outside 300-850:", (~df["Credit_Score"].dropna().between(300, 850)).sum())
 
-# ------------------------------------------------------------------
 # 3. CLEANING
-# ------------------------------------------------------------------
 # 3a. Standardise Employment_Status:  'EMP', 'employed', 'Employed' -> 'Employed'
 emp_map = {
     "emp": "Employed", "employed": "Employed",
@@ -92,9 +88,8 @@ pay_map = {"On-time": 0, "Late": 1, "Missed": 2}
 for m in months:
     df[m + "_code"] = df[m].map(pay_map)
 
-# ------------------------------------------------------------------
 # 4. FEATURE ENGINEERING (useful summaries of the 6-month history)
-# ------------------------------------------------------------------
+
 codes = [m + "_code" for m in months]
 df["Late_Months"] = (df[months] == "Late").sum(axis=1)
 df["Missed_Months"] = (df[months] == "Missed").sum(axis=1)
@@ -103,9 +98,9 @@ df["Payment_Score"] = df[codes].sum(axis=1)             # 0 = perfect, 12 = wors
 df["Recent_3M_Score"] = df[codes[-3:]].sum(axis=1)       # last 3 months only
 df["Loan_to_Income"] = df["Loan_Balance"] / df["Income"]
 
-# ------------------------------------------------------------------
+
 # 5. UNIVARIATE ANALYSIS
-# ------------------------------------------------------------------
+
 # 5a. Target balance
 counts = df[TARGET].value_counts()
 print("\nTarget distribution:\n", counts, "\n", (counts / len(df) * 100).round(1))
@@ -159,9 +154,9 @@ sns.countplot(x="Month", hue="Status", data=pay_long,
 plt.title("Payment status by month")
 save("06_payment_status_by_month")
 
-# ------------------------------------------------------------------
+
 # 6. BIVARIATE ANALYSIS vs TARGET
-# ------------------------------------------------------------------
+
 # 6a. Numeric features split by target
 fig, axes = plt.subplots(2, 4, figsize=(18, 8))
 for ax, c in zip(axes.ravel(), num_cols):
@@ -201,9 +196,9 @@ df.groupby("Payment_Score")[TARGET].mean().mul(100).plot(kind="bar", ax=axes[1],
 axes[1].set_title("Delinquency rate (%) by 6-month Payment_Score")
 save("09_rate_by_missed_and_score")
 
-# ------------------------------------------------------------------
+
 # 7. MULTIVARIATE ANALYSIS
-# ------------------------------------------------------------------
+
 corr_cols = num_cols + [TARGET, "Late_Months", "Missed_Months", "Payment_Score", "Loan_to_Income"]
 plt.figure(figsize=(11, 9))
 sns.heatmap(df[corr_cols].corr(), annot=True, fmt=".2f", cmap="coolwarm", center=0, square=True)
@@ -227,8 +222,8 @@ sns.heatmap(pivot, annot=True, fmt=".0f", cmap="Reds")
 plt.title("Delinquency rate (%): Employment x Card type")
 save("12_employment_x_card")
 
-# ------------------------------------------------------------------
+
 # 8. SAVE CLEANED DATA FOR MODELLING
-# ------------------------------------------------------------------
+
 df.to_csv("delinquency_cleaned.csv", index=False)
 print("\nDone. Plots in ./%s, cleaned data in delinquency_cleaned.csv" % OUT)
